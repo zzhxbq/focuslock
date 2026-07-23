@@ -1,0 +1,51 @@
+<resources>
+    <string name="app_name">专注锁机</string>
+
+    <!-- 主界面 -->
+    <string name="status_locked">已锁定</string>
+    <string name="status_unlocked">未锁定</string>
+    <string name="action_lock">开始锁机</string>
+    <string name="action_unlock">结束锁机</string>
+    <string name="tab_whitelist">白名单</string>
+    <string name="tab_blacklist">黑名单</string>
+    <string name="tab_usage">使用统计</string>
+    <string name="hint_empty_apps">暂无应用，去设置里添加</string>
+
+    <!-- 权限引导 -->
+    <string name="perm_accessibility_title">无障碍服务</string>
+    <string name="perm_accessibility_desc">用于在锁定期间拦截娱乐类应用。点击下方按钮前往系统设置开启“专注锁机”服务。</string>
+    <string name="perm_usage_title">使用情况访问</string>
+    <string name="perm_usage_desc">用于统计各应用屏幕使用时长。</string>
+    <string name="perm_notification_title">通知权限</string>
+    <string name="perm_notification_desc">用于在锁机期间显示常驻通知。</string>
+    <string name="action_open_settings">前往开启</string>
+    <string name="action_granted">已开启</string>
+
+    <!-- 锁屏覆盖 -->
+    <string name="lock_screen_title">专注中</string>
+    <string name="lock_screen_subtitle">该应用已被锁定，请保持专注</string>
+    <string name="lock_screen_back">返回桌面</string>
+    <string name="lock_session_elapsed">已专注 %1$d 分钟</string>
+
+    <!-- 通知 -->
+    <string name="notif_channel_id">focus_lock_channel</string>
+    <string name="notif_channel_name">锁机服务</string>
+    <string name="notif_channel_desc">锁机期间显示的常驻通知</string>
+    <string name="notif_title">专注锁机进行中</string>
+    <string name="notif_text">娱乐类应用已被拦截，保持专注</string>
+
+    <!-- 无障碍 -->
+    <string name="accessibility_service_label">专注锁机</string>
+    <string name="accessibility_service_desc">在锁机期间监测前台应用，命中黑名单时显示锁屏覆盖页，阻止用户继续使用娱乐类应用。仅在用户主动开启锁机时生效。</string>
+
+    <!-- 使用统计 -->
+    <string name="usage_today">今日使用</string>
+    <string name="usage_no_data">暂无使用数据，请确认已授予使用情况访问权限</string>
+
+    <!-- Toast -->
+    <string name="toast_lock_started">已开始锁机，保持专注</string>
+    <string name="toast_lock_stopped">已结束锁机</string>
+    <string name="toast_added">已添加</string>
+    <string name="toast_removed">已移除</string>
+    <string name="toast_accessibility_required">请先开启无障碍服务</string>
+</resources>
