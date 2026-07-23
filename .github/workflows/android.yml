@@ -24,11 +24,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: 安装 Gradle
+      - name: 安装 Gradle 8.5
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
 
       - name: 编译 Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: 给 APK 重命名（带时间戳）
         run: |
