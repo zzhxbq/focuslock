@@ -11,8 +11,11 @@ import com.focuslock.util.SystemWhitelist
  */
 class AppRepository private constructor(context: Context) {
 
+    private val appContext = context.applicationContext
+    val packageName: String = appContext.packageName
+
     private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     /** 当前是否处于锁机会话 */
     var isLocked: Boolean
@@ -63,10 +66,16 @@ class AppRepository private constructor(context: Context) {
     fun isWhitelisted(pkg: String): Boolean = getUserWhitelist().contains(pkg) || SystemWhitelist.isProtected(pkg)
 
     /**
-     * 锁机期间判定：是否应当拦截当前前台应用。
-     * 命中黑名单 且 未在白名单（含系统保留）。
+     * 强锁白名单模式：锁机期间，前台应用必须在白名单内（含系统保留应用），
+     * 否则一律拦截。黑名单仅作 UI 标记用途，不参与拦截判定。
+     *
+     * 注意：自身包名不拦截，否则会锁死自己的 UI。
      */
-    fun shouldBlock(pkg: String): Boolean = isLocked && isLockedApp(pkg) && !isWhitelisted(pkg)
+    fun shouldBlock(pkg: String): Boolean =
+        isLocked && pkg != packageName && !isWhitelisted(pkg)
+
+    /** 判断当前前台应用是否允许使用（白名单或自身） */
+    fun isAllowed(pkg: String): Boolean = !shouldBlock(pkg)
 
     companion object {
         private const val PREFS_NAME = "focus_lock_prefs"

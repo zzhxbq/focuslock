@@ -36,7 +36,7 @@
 
     <!-- 无障碍 -->
     <string name="accessibility_service_label">专注锁机</string>
-    <string name="accessibility_service_desc">在锁机期间监测前台应用，命中黑名单时显示锁屏覆盖页，阻止用户继续使用娱乐类应用。仅在用户主动开启锁机时生效。</string>
+    <string name="accessibility_service_desc">在锁机期间监测前台应用，仅允许白名单内应用使用，其余应用立即显示锁屏覆盖页阻挡。仅在用户主动开启锁机时生效。</string>
 
     <!-- 使用统计 -->
     <string name="usage_today">今日使用</string>
@@ -48,4 +48,6 @@
     <string name="toast_added">已添加</string>
     <string name="toast_removed">已移除</string>
     <string name="toast_accessibility_required">请先开启无障碍服务</string>
+    <string name="toast_usage_required">请先开启使用情况访问权限（用于强锁兜底检测）</string>
+    <string name="toast_whitelist_hint">提示：锁机期间仅允许白名单内应用，其他一律锁定</string>
 </resources>

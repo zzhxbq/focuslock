@@ -7,11 +7,16 @@ import com.focuslock.LockScreenActivity
 import com.focuslock.data.AppRepository
 
 /**
- * 无障碍服务：在锁机会话期间监测前台应用。
- * 当用户切换到黑名单内且未在白名单的应用时，拉起 [LockScreenActivity] 覆盖页，
- * 阻止用户继续使用娱乐类应用。
+ * 无障碍服务：强锁模式核心拦截器。
  *
- * 仅在 [AppRepository.isLocked] == true 时执行拦截逻辑。
+ * 锁机会话期间，前台应用只要不在白名单（含系统保留应用），
+ * 立即拉起 [LockScreenActivity] 覆盖页阻挡使用。
+ *
+ * 关键点：
+ * - 不再调用 performGlobalAction(GLOBAL_ACTION_BACK)，避免把锁屏自己也弹走
+ * - 锁屏页自带 onPause 重新拉起机制，能挡住 Home/最近任务键
+ * - 监听 typeWindowStateChanged + typeWindowsChanged，保证事件不漏
+ * - 不拦截自身包名，避免锁死自己的设置 UI
  */
 class AppWatchService : AccessibilityService() {
 
@@ -22,7 +27,13 @@ class AppWatchService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
-        if (pkg == packageName) return // 忽略自身界面切换
+        // 忽略空包名与系统 UI 的事件噪声
+        if (pkg.isEmpty() || pkg == "android") return
+        // 自身界面不拦截（用户在设置锁机/白名单）
+        if (pkg == packageName) {
+            lastBlockedPkg = null
+            return
+        }
 
         if (!repo.isLocked) {
             lastBlockedPkg = null
@@ -49,17 +60,24 @@ class AppWatchService : AccessibilityService() {
         lastBlockedPkg = null
     }
 
+    /**
+     * 拉起锁屏覆盖页。
+     *
+     * 故意不调用 performGlobalAction(GLOBAL_ACTION_BACK)：
+     * 因为锁屏 Activity 是 NEW_TASK + 独立 taskAffinity，
+     * BACK 全局动作会作用在当前栈顶（即刚拉起的锁屏），把它自己也关掉。
+     * 改由锁屏页自身用 onPause 机制阻挡用户绕过。
+     */
     private fun showLockScreen(pkg: String) {
         val intent = Intent(this, LockScreenActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_NO_USER_ACTION
             )
             putExtra(LockScreenActivity.EXTRA_PACKAGE, pkg)
         }
-        // 启动锁屏覆盖页后执行全局 "返回" 操作，把被拦截应用压回后台
         startActivity(intent)
-        performGlobalAction(GLOBAL_ACTION_BACK)
     }
 }

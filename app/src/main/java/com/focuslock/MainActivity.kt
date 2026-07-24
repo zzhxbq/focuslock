@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
     private val repo by lazy { AppRepository.get(this) }
     private val usageHelper by lazy { UsageStatsHelper(this) }
 
-    private var currentTab = AppAdapter.Mode.LOCKED
+    private var currentTab = AppAdapter.Mode.WHITELIST
     private var adapter: AppAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,8 +50,8 @@ class MainActivity : AppCompatActivity() {
             com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
                 currentTab = when (tab.position) {
-                    0 -> AppAdapter.Mode.LOCKED
-                    1 -> AppAdapter.Mode.WHITELIST
+                    0 -> AppAdapter.Mode.WHITELIST
+                    1 -> AppAdapter.Mode.LOCKED
                     else -> AppAdapter.Mode.USAGE
                 }
                 adapter = AppAdapter(currentTab, ::isAppChecked, ::onAppToggled)
@@ -64,6 +64,9 @@ class MainActivity : AppCompatActivity() {
         })
 
         loadApps()
+
+        // 默认选中白名单 Tab（强锁模式下白名单是核心配置）
+        binding.tabs.getTabAt(0)?.select()
     }
 
     override fun onResume() {
@@ -90,11 +93,25 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // 兜底轮询依赖 UsageStats，必须开启
+        if (!PermissionUtil.isUsageStatsGranted(this)) {
+            android.widget.Toast.makeText(this, R.string.toast_usage_required, android.widget.Toast.LENGTH_LONG).show()
+            startActivity(PermissionUtil.openUsageAccessSettings())
+            return
+        }
+
         repo.isLocked = true
         repo.lockStartedAt = System.currentTimeMillis()
         LockForegroundService.start(this)
         refreshLockUi()
         android.widget.Toast.makeText(this, R.string.toast_lock_started, android.widget.Toast.LENGTH_SHORT).show()
+        // 立即按 Home 回桌面，让兜底轮询接管：如果当前正停留在非白名单应用，
+        // 轮询会立刻拉起锁屏；如果在白名单（如桌面）则正常使用。
+        val home = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(home)
     }
 
     private fun refreshLockUi() {
