@@ -12,10 +12,12 @@
     <string name="hint_empty_apps">暂无应用，去设置里添加</string>
 
     <!-- 权限引导 -->
+    <string name="perm_overlay_title">悬浮窗权限</string>
+    <string name="perm_overlay_desc">强锁模式核心权限，用于显示全屏锁屏覆盖页（Home 键也弄不掉）。必须开启。</string>
     <string name="perm_accessibility_title">无障碍服务</string>
-    <string name="perm_accessibility_desc">用于在锁定期间拦截娱乐类应用。点击下方按钮前往系统设置开启“专注锁机”服务。</string>
+    <string name="perm_accessibility_desc">用于在锁定期间实时监测前台应用。</string>
     <string name="perm_usage_title">使用情况访问</string>
-    <string name="perm_usage_desc">用于统计各应用屏幕使用时长。</string>
+    <string name="perm_usage_desc">强锁兜底检测：每秒检查一次前台应用，非白名单立即锁定；同时用于统计使用时长。</string>
     <string name="perm_notification_title">通知权限</string>
     <string name="perm_notification_desc">用于在锁机期间显示常驻通知。</string>
     <string name="action_open_settings">前往开启</string>
@@ -25,6 +27,7 @@
     <string name="lock_screen_title">专注中</string>
     <string name="lock_screen_subtitle">该应用已被锁定，请保持专注</string>
     <string name="lock_screen_back">返回桌面</string>
+    <string name="lock_screen_blocked_app">%1$s 已被锁定，请专注</string>
     <string name="lock_session_elapsed">已专注 %1$d 分钟</string>
 
     <!-- 通知 -->
@@ -48,6 +51,7 @@
     <string name="toast_added">已添加</string>
     <string name="toast_removed">已移除</string>
     <string name="toast_accessibility_required">请先开启无障碍服务</string>
+    <string name="toast_overlay_required">请先开启悬浮窗权限（强锁必须）</string>
     <string name="toast_usage_required">请先开启使用情况访问权限（用于强锁兜底检测）</string>
     <string name="toast_whitelist_hint">提示：锁机期间仅允许白名单内应用，其他一律锁定</string>
 </resources>

@@ -12,7 +12,6 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
-import com.focuslock.LockScreenActivity
 import com.focuslock.MainActivity
 import com.focuslock.R
 import com.focuslock.data.AppRepository
@@ -22,13 +21,16 @@ import com.focuslock.data.AppRepository
  * 降低系统杀进程概率，并给用户一个"正在专注"的明确入口。
  *
  * 额外职责：兜底轮询当前前台应用。
- * AccessibilityService 事件可能因系统策略或延迟漏报，
+ * AccessibilityService 事件可能因系统策略、机型差异漏报，
  * 这里每 [POLL_INTERVAL_MS] 用 UsageStatsManager 查一次当前前台包名，
- * 若在锁机状态且当前前台不在白名单，立即拉起锁屏。
+ * 若在锁机状态且当前前台不在白名单，立即通过 [LockOverlayManager] 显示悬浮窗。
+ *
+ * 双重保险：无障碍事件（实时）+ 轮询（兜底），保证锁得住。
  */
 class LockForegroundService : Service() {
 
     private val repo by lazy { AppRepository.get(this) }
+    private val overlay by lazy { LockOverlayManager.get(this) }
     private val handler = Handler(Looper.getMainLooper())
     private var usageStats: UsageStatsManager? = null
 
@@ -50,13 +52,18 @@ class LockForegroundService : Service() {
         startForegroundCompat(buildNotification())
         // 启动兜底轮询
         handler.removeCallbacks(pollRunnable)
-        handler.postDelayed(pollRunnable, POLL_INTERVAL_MS)
+        handler.post(pollRunnable)
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacks(pollRunnable)
+        // 服务销毁时同时隐藏悬浮窗
+        try {
+            overlay.hide()
+        } catch (_: Exception) {
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -66,29 +73,32 @@ class LockForegroundService : Service() {
     }
 
     /**
-     * 兜底：查询当前前台应用，若锁机且不在白名单则拉起锁屏。
+     * 兜底：查询当前前台应用，若锁机且不在白名单则显示悬浮窗。
+     * 若在白名单则隐藏悬浮窗。
      */
     private fun checkForeground() {
-        if (!repo.isLocked) return
+        if (!repo.isLocked) {
+            if (overlay.isVisible()) overlay.hide()
+            return
+        }
         val pkg = currentForegroundPackage() ?: return
-        if (pkg == packageName) return
+        if (pkg == packageName) {
+            // 自身界面，隐藏悬浮窗
+            if (overlay.isVisible()) overlay.hide()
+            return
+        }
         if (repo.shouldBlock(pkg)) {
-            val intent = Intent(this, LockScreenActivity::class.java).apply {
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_NO_USER_ACTION
-                )
-                putExtra(LockScreenActivity.EXTRA_PACKAGE, pkg)
-            }
-            startActivity(intent)
+            overlay.show(pkg)
+        } else {
+            if (overlay.isVisible()) overlay.hide()
         }
     }
 
     /**
-     * 通过 UsageStatsManager 查询最近 5 秒内使用时间最新的应用包名，
+     * 通过 UsageStatsManager 查询最近 2 秒内使用时间最新的应用包名，
      * 作为当前前台应用的近似值。
+     *
+     * 时间窗口从 5 秒缩到 2 秒，更准确；同时如果查不到结果会扩大到 10 秒再试一次。
      */
     private fun currentForegroundPackage(): String? {
         val usm = usageStats ?: return null
@@ -96,13 +106,26 @@ class LockForegroundService : Service() {
         val stats = try {
             usm.queryUsageStats(
                 UsageStatsManager.INTERVAL_BEST,
-                now - 5_000,
+                now - 2_000,
                 now
             )
         } catch (e: SecurityException) {
             return null
         } ?: return null
-        return stats.maxByOrNull { it.lastTimeUsed }?.packageName
+
+        val result = stats.maxByOrNull { it.lastTimeUsed }
+        if (result != null) return result.packageName
+
+        // 第一次没查到，扩大时间窗口到 10 秒再试一次
+        return try {
+            usm.queryUsageStats(
+                UsageStatsManager.INTERVAL_BEST,
+                now - 10_000,
+                now
+            )?.maxByOrNull { it.lastTimeUsed }?.packageName
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun buildNotification(): Notification {
@@ -137,7 +160,7 @@ class LockForegroundService : Service() {
 
     companion object {
         private const val NOTIF_ID = 1001
-        private const val POLL_INTERVAL_MS = 1500L
+        private const val POLL_INTERVAL_MS = 1000L // 每 1 秒轮询一次
 
         fun start(context: Context) {
             val intent = Intent(context, LockForegroundService::class.java)

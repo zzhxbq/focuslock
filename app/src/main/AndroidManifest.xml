@@ -18,6 +18,9 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- 悬浮窗（锁屏覆盖页用，比 Activity 方式稳得多，Home/最近任务都绕不开） -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <application
         android:name=".FocusLockApp"
         android:allowBackup="true"

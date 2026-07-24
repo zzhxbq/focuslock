@@ -93,6 +93,13 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // 悬浮窗权限是强锁的核心，必须开启
+        if (!PermissionUtil.canDrawOverlays(this)) {
+            android.widget.Toast.makeText(this, R.string.toast_overlay_required, android.widget.Toast.LENGTH_LONG).show()
+            startActivity(PermissionUtil.openOverlaySettings(this))
+            return
+        }
+
         // 兜底轮询依赖 UsageStats，必须开启
         if (!PermissionUtil.isUsageStatsGranted(this)) {
             android.widget.Toast.makeText(this, R.string.toast_usage_required, android.widget.Toast.LENGTH_LONG).show()
@@ -105,8 +112,7 @@ class MainActivity : AppCompatActivity() {
         LockForegroundService.start(this)
         refreshLockUi()
         android.widget.Toast.makeText(this, R.string.toast_lock_started, android.widget.Toast.LENGTH_SHORT).show()
-        // 立即按 Home 回桌面，让兜底轮询接管：如果当前正停留在非白名单应用，
-        // 轮询会立刻拉起锁屏；如果在白名单（如桌面）则正常使用。
+        // 起锁机后立即回到桌面，由兜底轮询接管
         val home = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -199,6 +205,15 @@ class MainActivity : AppCompatActivity() {
         val container: LinearLayout = binding.permContainer
         container.removeAllViews()
 
+        // 1. 悬浮窗权限（强锁核心）
+        addPermissionCard(
+            container,
+            getString(R.string.perm_overlay_title),
+            getString(R.string.perm_overlay_desc),
+            PermissionUtil.canDrawOverlays(this)
+        ) { startActivity(PermissionUtil.openOverlaySettings(this)) }
+
+        // 2. 无障碍服务
         addPermissionCard(
             container,
             getString(R.string.perm_accessibility_title),
@@ -206,6 +221,7 @@ class MainActivity : AppCompatActivity() {
             PermissionUtil.isAccessibilityEnabled(this)
         ) { startActivity(PermissionUtil.openAccessibilitySettings()) }
 
+        // 3. 使用情况访问
         addPermissionCard(
             container,
             getString(R.string.perm_usage_title),
@@ -213,6 +229,7 @@ class MainActivity : AppCompatActivity() {
             PermissionUtil.isUsageStatsGranted(this)
         ) { startActivity(PermissionUtil.openUsageAccessSettings()) }
 
+        // 4. 通知权限
         addPermissionCard(
             container,
             getString(R.string.perm_notification_title),
